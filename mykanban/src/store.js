@@ -10,8 +10,12 @@ export default new Vuex.Store({
     description: '',
     point: 0,
     assignedTo: '',
-    status: '',
-    tasks: ''
+    status: 0,
+    tasks: '',
+    BackLog: '',
+    Todo: '',
+    Doing: '',
+    Done: ''
   },
   mutations: {
     setTask (state, payload) {
@@ -31,6 +35,18 @@ export default new Vuex.Store({
     },
     setTasks (state, payload) {
       state.tasks = payload
+    },
+    setBackLog (state, payload) {
+      state.BackLog = payload
+    },
+    setTodo (state, payload) {
+      state.Todo = payload
+    },
+    setDoing (state, payload) {
+      state.Doing = payload
+    },
+    setDone (state, payload) {
+      state.Done = payload
     }
   },
   actions: {
@@ -41,7 +57,7 @@ export default new Vuex.Store({
         description: self.state.description,
         point: self.state.point,
         assignedTo: self.state.assignedTo,
-        status: 'BackLog'
+        status: 0
       }, function (err) {
         if (err) console(err)
         self.state.task = ''
@@ -50,50 +66,43 @@ export default new Vuex.Store({
         self.state.assignedTo = ''
       })
     },
-    updateTodo (context, data) {
-      database.ref('task/' + data.id).set({
-        task: data.task,
-        description: data.description,
-        point: data.point,
-        assignedTo: data.assignedTo,
-        status: 'Todo'
-      })
-    },
-    updateBackLog (context, data) {
-      database.ref('task/' + data.id).set({
-        task: data.task,
-        description: data.description,
-        point: data.point,
-        assignedTo: data.assignedTo,
-        status: 'BackLog'
-      })
-    },
-    updateDoing (context, data) {
-      database.ref('task/' + data.id).set({
-        task: data.task,
-        description: data.description,
-        point: data.point,
-        assignedTo: data.assignedTo,
-        status: 'Doing'
-      })
-    },
-    updateDone (context, data) {
-      database.ref('task/' + data.id).set({
-        task: data.task,
-        description: data.description,
-        point: data.point,
-        assignedTo: data.assignedTo,
-        status: 'Done'
-      })
-    },
     getTask (context, payload) {
       database.ref('task/').on('value', function (snapshot) {
         var result = snapshot.val()
+        let dataBackLog = []
+        let dataTodo = []
+        let dataDoing = []
+        let dataDone = []
+        for (var index in result) {
+          let task = result[index]
+          task.id = index
+          if (Number(task.status) === 0) {
+            dataBackLog.push(task)
+          } else if (Number(task.status) === 1) {
+            dataTodo.push(task)
+          } else if (Number(task.status) === 2) {
+            dataDoing.push(task)
+          } else if (Number(task.status) === 3) {
+            dataDone.push(task)
+          }
+        }
         context.commit('setTasks', result)
+        context.commit('setBackLog', dataBackLog)
+        context.commit('setTodo', dataTodo)
+        context.commit('setDoing', dataDoing)
+        context.commit('setDone', dataDone)
       })
     },
     removeTask (context, id) {
-      database.ref('task/').child(id).remove()
+      database.ref(`task/${id}`).remove()
+    },
+    updateTask (context, data) {
+      if (data.move) {
+        data.task.status--
+      } else {
+        data.task.status++
+      }
+      database.ref(`task/${data.task.id}`).set(data.task)
     }
   }
 })
